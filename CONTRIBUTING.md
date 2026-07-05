@@ -36,8 +36,12 @@ scripts/integration-test.sh '^12.0'
 
 ## Pull requests
 
-- One logical change per PR; include tests (browser tests must not contain
-  sleeps - the fixtures mutate the DOM asynchronously on purpose).
+- One logical change per PR; include tests. Browser **test bodies** must not
+  contain sleeps - the fixtures mutate the DOM asynchronously on purpose, so
+  Playwright's auto-wait covers them. (The one permitted `usleep` is in the
+  test *harness* `BrowserTestCase`, polling the TCP socket while the fixture
+  web server boots - that is process startup, not test waiting. `src/` is held
+  to the stricter rule: no sleeping outside `Dawn\Support`, enforced by CI.)
 - `composer check` must pass (Pint, PHPStan max, full suite).
 - Follow the existing code style: `declare(strict_types=1)`, typed
   signatures, Dusk-verbatim assertion messages.

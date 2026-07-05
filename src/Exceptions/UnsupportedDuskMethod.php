@@ -22,7 +22,7 @@ final class UnsupportedDuskMethod extends BadMethodCallException
             'The Dusk method [%s] is not supported by Dawn%s. See the compatibility table for status and alternatives: %s',
             $method,
             $reason !== null ? ' ('.$reason.')' : ' yet',
-            self::COMPATIBILITY_TABLE.'#'.strtolower($method),
+            self::COMPATIBILITY_TABLE,
         );
 
         return new self($message);
