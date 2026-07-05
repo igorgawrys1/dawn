@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Wait Fixture</title>
+</head>
+<body>
+    <h1>Async playground</h1>
+
+    <div id="vanishing">I will disappear</div>
+    <div dusk="status">pending</div>
+
+    <button id="go-second" type="button">Navigate soon</button>
+    <a href="#" id="reload-link">Reload me</a>
+
+    <button type="button" dusk="copy-button">Copy</button>
+
+    <script>
+        setTimeout(() => {
+            const late = document.createElement('div');
+            late.className = 'late-arrival';
+            late.setAttribute('dusk', 'late');
+            late.textContent = 'Loaded via JavaScript!';
+            document.body.appendChild(late);
+
+            document.getElementById('vanishing').remove();
+
+            document.querySelector('[dusk=status]').textContent = 'ready';
+
+            const link = document.createElement('a');
+            link.href = '/second.html';
+            link.textContent = 'Late link';
+            document.body.appendChild(link);
+
+            window.dawnReady = true;
+        }, 400);
+
+        document.getElementById('go-second').addEventListener('click', () => {
+            setTimeout(() => { window.location.href = '/second.html'; }, 300);
+        });
+
+        document.getElementById('reload-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            setTimeout(() => window.location.reload(), 200);
+        });
+
+        document.querySelector('[dusk=copy-button]').addEventListener('click', (e) => {
+            e.target.textContent = 'Copied!';
+            setTimeout(() => { e.target.textContent = 'Copy'; }, 500);
+        });
+    </script>
+</body>
+</html>

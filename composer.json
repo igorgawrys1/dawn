@@ -1,0 +1,72 @@
+{
+    "name": "gawrys/dawn",
+    "description": "Run existing Laravel Dusk test suites on Playwright - a drop-in reimplementation of Dusk's Browser API, no test rewrites.",
+    "keywords": ["laravel", "dusk", "playwright", "browser-testing", "e2e", "testing"],
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Igor Gawryś",
+            "email": "igor@fikg.pl"
+        }
+    ],
+    "homepage": "https://igorgawrys1.github.io/dawn-docs/",
+    "support": {
+        "issues": "https://github.com/igorgawrys1/dawn/issues",
+        "source": "https://github.com/igorgawrys1/dawn",
+        "docs": "https://igorgawrys1.github.io/dawn-docs/"
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "phpunit/phpunit": "^10.5|^11.0|^12.0",
+        "playwright-php/playwright": "^1.2",
+        "psr/clock": "^1.0"
+    },
+    "require-dev": {
+        "larastan/larastan": "^2.9|^3.0",
+        "laravel/pint": "^1.13",
+        "orchestra/testbench": "^8.21|^9.0|^10.0",
+        "symfony/process": "^6.4|^7.0|^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dawn\\": "src/"
+        },
+        "files": [
+            "src/compat.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Dawn\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Dawn\\DawnServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "lint": "pint --test",
+        "analyse": "phpstan analyse",
+        "test:unit": "phpunit --testsuite Unit",
+        "test:browser": "phpunit --testsuite Browser",
+        "test": [
+            "@test:unit",
+            "@test:browser"
+        ],
+        "check": [
+            "@lint",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

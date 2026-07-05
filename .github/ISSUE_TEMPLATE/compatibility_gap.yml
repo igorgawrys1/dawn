@@ -1,0 +1,20 @@
+name: Compatibility gap
+description: A Dusk method your suite needs that throws UnsupportedDuskMethod.
+labels: [compatibility]
+body:
+  - type: input
+    id: method
+    attributes:
+      label: Dusk method
+      placeholder: withinFrame
+    validations:
+      required: true
+
+  - type: textarea
+    id: usage
+    attributes:
+      label: How your suite uses it
+      description: A representative snippet - helps prioritise and shapes the mapping.
+      render: php
+    validations:
+      required: true
