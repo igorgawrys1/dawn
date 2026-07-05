@@ -12,6 +12,11 @@ use Playwright\Locator\LocatorInterface;
 trait InteractsWithElements
 {
     /**
+     * Why blocking JavaScript dialogs cannot be driven on the current engine.
+     */
+    private const DIALOG_LIMITATION = 'the playwright-php engine always registers a dialog listener and uses a synchronous transport, so an action that opens a blocking alert/confirm/prompt deadlocks - PHP cannot deliver the accept/dismiss decision while blocked on that action';
+
+    /**
      * All elements matching the given selector.
      *
      * Note: returns Playwright locators, not WebDriver RemoteWebElements.
@@ -342,16 +347,16 @@ trait InteractsWithElements
 
     public function acceptDialog(): static
     {
-        throw UnsupportedDuskMethod::make('acceptDialog');
+        throw UnsupportedDuskMethod::make('acceptDialog', self::DIALOG_LIMITATION);
     }
 
     public function typeInDialog(string $value): static
     {
-        throw UnsupportedDuskMethod::make('typeInDialog');
+        throw UnsupportedDuskMethod::make('typeInDialog', self::DIALOG_LIMITATION);
     }
 
     public function dismissDialog(): static
     {
-        throw UnsupportedDuskMethod::make('dismissDialog');
+        throw UnsupportedDuskMethod::make('dismissDialog', self::DIALOG_LIMITATION);
     }
 }

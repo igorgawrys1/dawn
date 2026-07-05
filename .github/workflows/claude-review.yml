@@ -1,0 +1,40 @@
+name: Claude Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request for the Dawn package (a drop-in Laravel Dusk
+            reimplementation on Playwright). Focus on:
+            - Correctness bugs and edge cases
+            - Fidelity to Laravel Dusk's public Browser API semantics and messages
+            - The project's hard rules: no Facebook\WebDriver types; no PHP-side
+              sleeping or polling outside Dawn\Support; unsupported methods must
+              throw UnsupportedDuskMethod (never approximate silently)
+            - PHPStan max-level type safety and Pint style
+
+            The PR branch is already checked out. Post top-level feedback with
+            `gh pr comment`, and inline findings via
+            mcp__github_inline_comment__create_inline_comment (confirmed: true).
+            Only post GitHub comments - do not return the review as chat text.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"

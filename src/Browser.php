@@ -8,6 +8,7 @@ use Closure;
 use Dawn\Exceptions\UnsupportedDuskMethod;
 use Illuminate\Support\Traits\Macroable;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Dialog\DialogInterface;
 use Playwright\Page\PageInterface;
 
 /**
@@ -67,6 +68,16 @@ class Browser
      */
     public array $consoleMessages = [];
 
+    /**
+     * Dialogs captured by the always-on listener. Driving them from the test
+     * body is not supported (see COMPATIBILITY.md); this buffer exists only so
+     * failure capture can dismiss a dialog a failing test left open, keeping
+     * artifacts and later tests from being blocked.
+     *
+     * @var list<DialogInterface>
+     */
+    public array $pendingDialogs = [];
+
     public ElementResolver $resolver;
 
     public function __construct(
@@ -83,7 +94,30 @@ class Browser
                     'location' => $message->location(),
                 ];
             });
+
+            $this->page->events()->onDialog(function (DialogInterface $dialog): void {
+                $this->pendingDialogs[] = $dialog;
+            });
         }
+    }
+
+    /**
+     * Dismiss every captured-but-unhandled dialog. Used during failure
+     * capture so a dialog left open by a failing test cannot block artifacts
+     * (or contaminate later tests sharing the browser). Driving dialogs from
+     * the test body is not supported - see COMPATIBILITY.md.
+     */
+    public function dismissPendingDialogs(): void
+    {
+        foreach ($this->pendingDialogs as $dialog) {
+            try {
+                $dialog->dismiss();
+            } catch (\Throwable) {
+                // The dialog may already be gone.
+            }
+        }
+
+        $this->pendingDialogs = [];
     }
 
     /**
@@ -268,6 +302,7 @@ class Browser
         );
 
         $browser->consoleMessages = &$this->consoleMessages;
+        $browser->pendingDialogs = &$this->pendingDialogs;
 
         $callback($browser);
 
@@ -285,6 +320,7 @@ class Browser
         );
 
         $browser->consoleMessages = &$this->consoleMessages;
+        $browser->pendingDialogs = &$this->pendingDialogs;
 
         $callback($browser);
 

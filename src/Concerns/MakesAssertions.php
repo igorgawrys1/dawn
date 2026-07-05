@@ -736,7 +736,10 @@ trait MakesAssertions
 
     public function assertDialogOpened(string $message): static
     {
-        throw UnsupportedDuskMethod::make('assertDialogOpened');
+        throw UnsupportedDuskMethod::make(
+            'assertDialogOpened',
+            'the playwright-php engine cannot drive blocking JS dialogs from PHP (synchronous transport deadlock)'
+        );
     }
 
     /**

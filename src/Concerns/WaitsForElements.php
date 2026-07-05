@@ -283,12 +283,44 @@ trait WaitsForElements
 
     public function waitForDialog(?int $seconds = null): static
     {
-        throw UnsupportedDuskMethod::make('waitForDialog');
+        throw UnsupportedDuskMethod::make(
+            'waitForDialog',
+            'the playwright-php engine cannot drive blocking JS dialogs from PHP (synchronous transport deadlock)'
+        );
     }
 
+    /**
+     * Wait for the given DOM event to fire on the given target (a Dusk
+     * selector, or "document" / "window"; defaults to the current scope).
+     */
     public function waitForEvent(string $type, ?string $target = null, ?int $seconds = null): static
     {
-        throw UnsupportedDuskMethod::make('waitForEvent');
+        if ($target === 'document' || $target === 'window') {
+            $targetJs = $target;
+        } else {
+            $targetJs = 'document.querySelector('.json_encode($this->resolver->format($target ?? '')).')';
+        }
+
+        $flag = 'dawnEvent_'.bin2hex(random_bytes(8));
+
+        $this->page->evaluate(sprintf(
+            '() => { window[%s] = false; const t = %s; if (t) { t.addEventListener(%s, () => { window[%s] = true; }, { once: true }); } }',
+            json_encode($flag),
+            $targetJs,
+            json_encode($type),
+            json_encode($flag),
+        ));
+
+        return $this->waitForJsCondition(
+            "window[{$this->jsString($flag)}] === true",
+            $seconds,
+            $this->formatTimeOutMessage('Waited %s seconds for event', $type),
+        );
+    }
+
+    private function jsString(string $value): string
+    {
+        return (string) json_encode($value);
     }
 
     /**
