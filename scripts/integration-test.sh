@@ -116,6 +116,35 @@ class AuthenticationTest extends DuskTestCase
 }
 PHP
 
+cat > tests/Browser/CookieTest.php <<'PHP'
+<?php
+
+namespace Tests\Browser;
+
+use Laravel\Dusk\Browser;
+use Tests\DuskTestCase;
+
+class CookieTest extends DuskTestCase
+{
+    public function test_encrypted_cookies_round_trip(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $browser->visit('/')
+                ->cookie('encrypted', 'secret-value')
+                ->assertHasCookie('encrypted')
+                ->assertCookieValue('encrypted', 'secret-value');
+
+            $this->assertSame('secret-value', $browser->cookie('encrypted'));
+
+            $browser->plainCookie('plain', 'plain-value')
+                ->assertPlainCookieValue('plain', 'plain-value')
+                ->deleteCookie('plain')
+                ->assertPlainCookieMissing('plain');
+        });
+    }
+}
+PHP
+
 echo "==> Serving the application"
 php artisan serve --host=127.0.0.1 --port="$APP_PORT" >/dev/null 2>&1 &
 SERVER_PID=$!

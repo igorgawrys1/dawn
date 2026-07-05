@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Vue Fixture</title>
+</head>
+<body>
+    <h1>Vue component reads</h1>
+
+    <!-- Vue 3 exposes component state at el.__vueParentComponent.setupState -->
+    <div dusk="vue3">Vue 3 component</div>
+
+    <!-- Vue 2 exposes it at el.__vue__ -->
+    <div dusk="vue2">Vue 2 component</div>
+
+    <button id="bump" type="button">Bump</button>
+
+    <script>
+        const v3 = document.querySelector('[dusk=vue3]');
+        v3.__vueParentComponent = { ctx: {}, setupState: { count: 1, name: 'Taylor', tags: ['php', 'laravel'] } };
+
+        const v2 = document.querySelector('[dusk=vue2]');
+        v2.__vue__ = { greeting: 'hello', items: ['a', 'b'] };
+
+        document.getElementById('bump').addEventListener('click', () => {
+            setTimeout(() => { v3.__vueParentComponent.setupState.count = 5; }, 300);
+        });
+    </script>
+</body>
+</html>

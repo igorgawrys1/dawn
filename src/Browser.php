@@ -8,6 +8,7 @@ use Closure;
 use Dawn\Exceptions\UnsupportedDuskMethod;
 use Illuminate\Support\Traits\Macroable;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Dialog\DialogInterface;
 use Playwright\Page\PageInterface;
 
 /**
@@ -67,6 +68,26 @@ class Browser
      */
     public array $consoleMessages = [];
 
+    /**
+     * Dialogs captured by the always-on listener. Driving them from the test
+     * body is not supported (see COMPATIBILITY.md); this buffer exists only so
+     * failure capture can dismiss a dialog a failing test left open, keeping
+     * artifacts and later tests from being blocked.
+     *
+     * @var list<DialogInterface>
+     */
+    public array $pendingDialogs = [];
+
+    /**
+     * The page object the browser is currently on, if any.
+     */
+    public ?Page $currentPage = null;
+
+    /**
+     * The component the browser is currently scoped to, if any.
+     */
+    public ?Component $currentComponent = null;
+
     public ElementResolver $resolver;
 
     public function __construct(
@@ -83,19 +104,53 @@ class Browser
                     'location' => $message->location(),
                 ];
             });
+
+            $this->page->events()->onDialog(function (DialogInterface $dialog): void {
+                $this->pendingDialogs[] = $dialog;
+            });
         }
     }
 
     /**
-     * Browse to the given URL.
+     * Dismiss every captured-but-unhandled dialog. Used during failure
+     * capture so a dialog left open by a failing test cannot block artifacts
+     * (or contaminate later tests sharing the browser). Driving dialogs from
+     * the test body is not supported - see COMPATIBILITY.md.
      */
-    public function visit(string $url): static
+    public function dismissPendingDialogs(): void
     {
+        foreach ($this->pendingDialogs as $dialog) {
+            try {
+                $dialog->dismiss();
+            } catch (\Throwable) {
+                // The dialog may already be gone.
+            }
+        }
+
+        $this->pendingDialogs = [];
+    }
+
+    /**
+     * Browse to the given URL or Page object.
+     */
+    public function visit(string|Page $url): static
+    {
+        $page = null;
+
+        if ($url instanceof Page) {
+            $page = $url;
+            $url = $page->url();
+        }
+
         if (! str_contains($url, '://')) {
             $url = static::$baseUrl.'/'.ltrim($url, '/');
         }
 
         $this->page->goto($url);
+
+        if ($page !== null) {
+            $this->on($page);
+        }
 
         return $this;
     }
@@ -158,24 +213,6 @@ class Browser
         $this->page->setViewportSize($width, $height);
 
         return $this;
-    }
-
-    /**
-     * Scroll the element matching the given selector into view.
-     */
-    public function scrollIntoView(string $selector): static
-    {
-        $this->resolver->resolve($selector)->evaluate('el => el.scrollIntoView()');
-
-        return $this;
-    }
-
-    /**
-     * Scroll the page to the element matching the given selector.
-     */
-    public function scrollTo(string $selector): static
-    {
-        return $this->scrollIntoView($selector);
     }
 
     /**
@@ -268,24 +305,38 @@ class Browser
     }
 
     /**
-     * Execute the given callback within a browser scoped to the selector.
+     * Execute the given callback within a browser scoped to the selector or component.
      */
-    public function within(string $selector, Closure $callback): static
+    public function within(string|Component $selector, Closure $callback): static
     {
         return $this->with($selector, $callback);
     }
 
     /**
-     * Execute the given callback within a browser scoped to the selector.
+     * Execute the given callback within a browser scoped to the selector or component.
      */
-    public function with(string $selector, Closure $callback): static
+    public function with(string|Component $selector, Closure $callback): static
     {
+        // A Component's prefix is applied once by onComponent(); here it must
+        // NOT be prepended, so it scopes from the current prefix (mirrors
+        // Dusk, where Component::__toString() is empty for exactly this reason).
+        $scope = $selector instanceof Component ? '' : $selector;
+
         $browser = new static(
             $this->page,
-            new ElementResolver($this->page, $this->resolver->format($selector)),
+            new ElementResolver($this->page, $this->resolver->format($scope)),
         );
 
         $browser->consoleMessages = &$this->consoleMessages;
+        $browser->pendingDialogs = &$this->pendingDialogs;
+
+        if ($this->currentPage !== null) {
+            $browser->onWithoutAssert($this->currentPage);
+        }
+
+        if ($selector instanceof Component) {
+            $browser->onComponent($selector, $this->resolver);
+        }
 
         $callback($browser);
 
@@ -303,6 +354,7 @@ class Browser
         );
 
         $browser->consoleMessages = &$this->consoleMessages;
+        $browser->pendingDialogs = &$this->pendingDialogs;
 
         $callback($browser);
 
@@ -397,9 +449,21 @@ class Browser
         throw UnsupportedDuskMethod::make('maximize', 'Playwright uses viewports, not OS windows - use resize() instead');
     }
 
+    /**
+     * Resize the viewport to fit the document's rendered content.
+     */
     public function fitContent(): static
     {
-        throw UnsupportedDuskMethod::make('fitContent');
+        $size = $this->page->evaluate(
+            '() => { const el = document.documentElement; return [el.scrollWidth, el.scrollHeight]; }'
+        );
+
+        if (is_array($size) && isset($size[0], $size[1]) && is_numeric($size[0]) && is_numeric($size[1])
+            && (int) $size[0] > 0 && (int) $size[1] > 0) {
+            $this->resize((int) $size[0], (int) $size[1]);
+        }
+
+        return $this;
     }
 
     public function disableFitOnFailure(): static
@@ -417,29 +481,103 @@ class Browser
         throw UnsupportedDuskMethod::make('move', 'Playwright uses viewports, not OS windows');
     }
 
+    /**
+     * Execute the given callback within a browser scoped inside the iframe
+     * matching the given selector.
+     */
     public function withinFrame(string $selector, Closure $callback): static
     {
-        throw UnsupportedDuskMethod::make('withinFrame');
+        $frameResolver = new ElementResolver($this->page, 'body');
+        $frameResolver->frameSelector = $this->resolver->format($selector);
+
+        $browser = new static($this->page, $frameResolver);
+        $browser->consoleMessages = &$this->consoleMessages;
+        $browser->pendingDialogs = &$this->pendingDialogs;
+
+        $callback($browser);
+
+        return $this;
     }
 
-    public function on(object $page): static
+    /**
+     * Set the current page and assert that the browser is on it.
+     */
+    public function on(Page $page): static
     {
-        throw UnsupportedDuskMethod::make('on', 'Dusk page objects are not supported yet');
+        $this->onWithoutAssert($page);
+
+        $page->assert($this);
+
+        return $this;
     }
 
-    public function onWithoutAssert(object $page): static
+    /**
+     * Set the current page without asserting, registering its element shortcuts.
+     */
+    public function onWithoutAssert(Page $page): static
     {
-        throw UnsupportedDuskMethod::make('onWithoutAssert', 'Dusk page objects are not supported yet');
+        $this->currentPage = $page;
+
+        $this->resolver->pageElements(array_merge(
+            $page::siteElements(),
+            $page->elements(),
+        ));
+
+        return $this;
     }
 
-    public function component(object $component): static
+    /**
+     * Create a browser scoped to the given component and assert its presence.
+     */
+    public function component(Component $component): static
     {
-        throw UnsupportedDuskMethod::make('component', 'Dusk components are not supported yet');
+        // Start from the current prefix; onComponent() appends the component
+        // selector exactly once.
+        $browser = new static(
+            $this->page,
+            new ElementResolver($this->page, $this->resolver->format('')),
+        );
+
+        $browser->consoleMessages = &$this->consoleMessages;
+        $browser->pendingDialogs = &$this->pendingDialogs;
+
+        if ($this->currentPage !== null) {
+            $browser->onWithoutAssert($this->currentPage);
+        }
+
+        $browser->onComponent($component, $this->resolver);
+
+        return $browser;
     }
 
+    /**
+     * Bind the given component to this browser and register its shortcuts.
+     */
+    public function onComponent(Component $component, ElementResolver $parentResolver): static
+    {
+        $this->currentComponent = $component;
+
+        $this->resolver->pageElements(
+            $component->elements() + $parentResolver->elements
+        );
+
+        $component->assert($this);
+
+        $this->resolver->prefix = $this->resolver->format($component->selector());
+
+        return $this;
+    }
+
+    /**
+     * Execute the given callback with a fluent keyboard instance.
+     *
+     * @param  callable(KeyboardActions): void  $callback
+     */
     public function withKeyboard(callable $callback): static
     {
-        throw UnsupportedDuskMethod::make('withKeyboard');
+        $callback(new KeyboardActions($this->page));
+
+        return $this;
     }
 
     public function tinker(): static
@@ -475,6 +613,10 @@ class Browser
      */
     public function elementInnerText(string $formattedSelector): string
     {
+        if ($this->resolver->frameSelector !== null) {
+            return $this->resolver->locatorForFormatted($formattedSelector)->innerText();
+        }
+
         $target = json_encode($formattedSelector);
 
         $text = $this->page->evaluate(

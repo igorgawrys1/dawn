@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace Dawn\Concerns;
 
-use Dawn\Exceptions\UnsupportedDuskMethod;
-
 trait InteractsWithMouse
 {
+    /**
+     * The last known mouse position, tracked so that Dusk's offset-based and
+     * cursor-position mouse APIs (which WebDriver expresses relative to the
+     * current pointer) translate onto Playwright's absolute mouse.
+     */
+    protected float $mouseX = 0.0;
+
+    protected float $mouseY = 0.0;
+
     /**
      * Move the mouse over the element matching the given selector.
      */
@@ -15,19 +22,50 @@ trait InteractsWithMouse
     {
         $this->resolver->resolve($selector)->hover($this->actionOptions());
 
+        [$this->mouseX, $this->mouseY] = $this->elementCenter($selector);
+
         return $this;
     }
 
     /**
-     * Click the element matching the given selector.
+     * Move the mouse by the given offset from its current position.
+     */
+    public function moveMouse(float $xOffset, float $yOffset): static
+    {
+        $this->mouseX += $xOffset;
+        $this->mouseY += $yOffset;
+
+        $this->page->mouse()->move($this->mouseX, $this->mouseY);
+
+        return $this;
+    }
+
+    /**
+     * Click the element matching the given selector, or - when no selector is
+     * given - at the current mouse position.
      */
     public function click(?string $selector = null): static
     {
         if ($selector === null) {
-            throw UnsupportedDuskMethod::make('click', 'clicking at the current mouse position is not supported yet - pass a selector');
+            $this->page->mouse()->click($this->mouseX, $this->mouseY);
+
+            return $this;
         }
 
         $this->resolver->resolve($selector)->click($this->actionOptions());
+
+        return $this;
+    }
+
+    /**
+     * Click at the given viewport coordinates.
+     */
+    public function clickAtPoint(float $x, float $y): static
+    {
+        $this->page->mouse()->click($x, $y);
+
+        $this->mouseX = $x;
+        $this->mouseY = $y;
 
         return $this;
     }
@@ -61,12 +99,40 @@ trait InteractsWithMouse
     }
 
     /**
-     * Double click the element matching the given selector.
+     * Press and hold the mouse button, optionally over the given selector.
+     */
+    public function clickAndHold(?string $selector = null): static
+    {
+        if ($selector !== null) {
+            [$this->mouseX, $this->mouseY] = $this->elementCenter($selector);
+            $this->page->mouse()->move($this->mouseX, $this->mouseY);
+        }
+
+        $this->page->mouse()->down();
+
+        return $this;
+    }
+
+    /**
+     * Release the mouse button.
+     */
+    public function releaseMouse(): static
+    {
+        $this->page->mouse()->up();
+
+        return $this;
+    }
+
+    /**
+     * Double click the element matching the given selector, or at the current
+     * mouse position when no selector is given.
      */
     public function doubleClick(?string $selector = null): static
     {
         if ($selector === null) {
-            throw UnsupportedDuskMethod::make('doubleClick', 'double clicking at the current mouse position is not supported yet - pass a selector');
+            $this->page->mouse()->dblclick($this->mouseX, $this->mouseY);
+
+            return $this;
         }
 
         $this->resolver->resolve($selector)->dblclick($this->actionOptions());
@@ -75,12 +141,15 @@ trait InteractsWithMouse
     }
 
     /**
-     * Right click the element matching the given selector.
+     * Right click the element matching the given selector, or at the current
+     * mouse position when no selector is given.
      */
     public function rightClick(?string $selector = null): static
     {
         if ($selector === null) {
-            throw UnsupportedDuskMethod::make('rightClick', 'right clicking at the current mouse position is not supported yet - pass a selector');
+            $this->page->mouse()->click($this->mouseX, $this->mouseY, ['button' => 'right']);
+
+            return $this;
         }
 
         $this->resolver->resolve($selector)->click($this->actionOptions(['button' => 'right']));
@@ -89,12 +158,22 @@ trait InteractsWithMouse
     }
 
     /**
-     * Control-click (Windows/Linux) / Command-click (macOS) the element.
+     * Control-click (Windows/Linux) / Command-click (macOS) the element, or at
+     * the current mouse position when no selector is given.
      */
     public function controlClick(?string $selector = null): static
     {
         if ($selector === null) {
-            throw UnsupportedDuskMethod::make('controlClick', 'control clicking at the current mouse position is not supported yet - pass a selector');
+            $keyboard = $this->page->keyboard();
+            $keyboard->down('ControlOrMeta');
+
+            try {
+                $this->page->mouse()->click($this->mouseX, $this->mouseY);
+            } finally {
+                $keyboard->up('ControlOrMeta');
+            }
+
+            return $this;
         }
 
         $this->resolver->resolve($selector)->click($this->actionOptions(['modifiers' => ['ControlOrMeta']]));
@@ -102,23 +181,39 @@ trait InteractsWithMouse
         return $this;
     }
 
-    public function moveMouse(int $xOffset, int $yOffset): static
+    /**
+     * Scroll the element matching the given selector into view.
+     */
+    public function scrollIntoView(string $selector): static
     {
-        throw UnsupportedDuskMethod::make('moveMouse');
+        $this->resolver->resolve($selector)->evaluate('el => el.scrollIntoView()');
+
+        return $this;
     }
 
-    public function clickAtPoint(int $x, int $y): static
+    /**
+     * Scroll the page to the element matching the given selector.
+     */
+    public function scrollTo(string $selector): static
     {
-        throw UnsupportedDuskMethod::make('clickAtPoint');
+        return $this->scrollIntoView($selector);
     }
 
-    public function clickAndHold(?string $selector = null): static
+    /**
+     * The viewport-relative center of the first element matching the selector.
+     *
+     * @return array{0: float, 1: float}
+     */
+    protected function elementCenter(string $selector): array
     {
-        throw UnsupportedDuskMethod::make('clickAndHold');
-    }
+        $center = $this->resolver->resolve($selector)->evaluate(
+            'el => { const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }'
+        );
 
-    public function releaseMouse(): static
-    {
-        throw UnsupportedDuskMethod::make('releaseMouse');
+        if (is_array($center) && isset($center[0], $center[1]) && is_numeric($center[0]) && is_numeric($center[1])) {
+            return [(float) $center[0], (float) $center[1]];
+        }
+
+        return [$this->mouseX, $this->mouseY];
     }
 }

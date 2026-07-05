@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Dialogs Fixture</title>
+</head>
+<body>
+    <h1>Dialogs</h1>
+
+    <button id="alert" type="button" onclick="window.alert('This is an alert')">Alert</button>
+    <button id="confirm" type="button" onclick="window.__confirm = window.confirm('Proceed?')">Confirm</button>
+    <button id="prompt" type="button" onclick="window.__prompt = window.prompt('Your name?')">Prompt</button>
+
+    <div dusk="confirm-result"></div>
+    <div dusk="prompt-result"></div>
+
+    <button id="defer-event" type="button">Fire later</button>
+    <div dusk="event-target"></div>
+
+    <script>
+        // Reflect confirm/prompt results into the DOM once the dialog is handled.
+        setInterval(() => {
+            if (typeof window.__confirm !== 'undefined') {
+                document.querySelector('[dusk=confirm-result]').textContent = window.__confirm ? 'confirmed' : 'cancelled';
+            }
+            if (typeof window.__prompt !== 'undefined' && window.__prompt !== null) {
+                document.querySelector('[dusk=prompt-result]').textContent = window.__prompt;
+            }
+        }, 50);
+
+        document.getElementById('defer-event').addEventListener('click', () => {
+            setTimeout(() => {
+                document.querySelector('[dusk=event-target]').dispatchEvent(new CustomEvent('dawn:ready', { bubbles: false }));
+            }, 300);
+        });
+    </script>
+</body>
+</html>

@@ -12,6 +12,11 @@ use Playwright\Locator\LocatorInterface;
 trait InteractsWithElements
 {
     /**
+     * Why blocking JavaScript dialogs cannot be driven on the current engine.
+     */
+    private const DIALOG_LIMITATION = 'the playwright-php engine always registers a dialog listener and uses a synchronous transport, so an action that opens a blocking alert/confirm/prompt deadlocks - PHP cannot deliver the accept/dismiss decision while blocked on that action';
+
+    /**
      * All elements matching the given selector.
      *
      * Note: returns Playwright locators, not WebDriver RemoteWebElements.
@@ -64,6 +69,12 @@ trait InteractsWithElements
     {
         if ($value === null) {
             return $this->elementValue($this->resolver->format($selector));
+        }
+
+        if ($this->resolver->frameSelector !== null) {
+            $this->resolver->resolve($selector)->evaluate('(el, v) => { el.value = v; }', (string) $value);
+
+            return $this;
         }
 
         $target = json_encode($this->resolver->format($selector));
@@ -279,48 +290,79 @@ trait InteractsWithElements
         return $this;
     }
 
+    /**
+     * Drag the element at the "from" selector onto the "to" selector.
+     */
     public function drag(string $from, string $to): static
     {
-        throw UnsupportedDuskMethod::make('drag');
+        $this->resolver->resolve($from)->dragTo($this->resolver->resolve($to), $this->actionOptions());
+
+        return $this;
     }
 
+    /**
+     * Drag the element up by the given number of pixels.
+     */
     public function dragUp(string $selector, int $offset): static
     {
-        throw UnsupportedDuskMethod::make('dragUp');
+        return $this->dragOffset($selector, 0, -$offset);
     }
 
+    /**
+     * Drag the element down by the given number of pixels.
+     */
     public function dragDown(string $selector, int $offset): static
     {
-        throw UnsupportedDuskMethod::make('dragDown');
+        return $this->dragOffset($selector, 0, $offset);
     }
 
+    /**
+     * Drag the element left by the given number of pixels.
+     */
     public function dragLeft(string $selector, int $offset): static
     {
-        throw UnsupportedDuskMethod::make('dragLeft');
+        return $this->dragOffset($selector, -$offset, 0);
     }
 
+    /**
+     * Drag the element right by the given number of pixels.
+     */
     public function dragRight(string $selector, int $offset): static
     {
-        throw UnsupportedDuskMethod::make('dragRight');
+        return $this->dragOffset($selector, $offset, 0);
     }
 
+    /**
+     * Drag the element matching the given selector by the given offset.
+     */
     public function dragOffset(string $selector, int $x = 0, int $y = 0): static
     {
-        throw UnsupportedDuskMethod::make('dragOffset');
+        [$cx, $cy] = $this->elementCenter($selector);
+
+        $mouse = $this->page->mouse();
+        $mouse->move($cx, $cy);
+        $mouse->down();
+        $mouse->move($cx + $x, $cy + $y);
+        $mouse->up();
+
+        $this->mouseX = $cx + $x;
+        $this->mouseY = $cy + $y;
+
+        return $this;
     }
 
     public function acceptDialog(): static
     {
-        throw UnsupportedDuskMethod::make('acceptDialog');
+        throw UnsupportedDuskMethod::make('acceptDialog', self::DIALOG_LIMITATION);
     }
 
     public function typeInDialog(string $value): static
     {
-        throw UnsupportedDuskMethod::make('typeInDialog');
+        throw UnsupportedDuskMethod::make('typeInDialog', self::DIALOG_LIMITATION);
     }
 
     public function dismissDialog(): static
     {
-        throw UnsupportedDuskMethod::make('dismissDialog');
+        throw UnsupportedDuskMethod::make('dismissDialog', self::DIALOG_LIMITATION);
     }
 }

@@ -103,7 +103,16 @@ trait ProvidesBrowser
     protected function captureFailuresFor(Collection $browsers): void
     {
         $browsers->each(function (Browser $browser, int $key): void {
-            $browser->screenshot('failure-'.$this->getCallerName().'-'.$key);
+            // A dialog left open by the failing test blocks the page, so any
+            // screenshot would hang; dismiss pending dialogs first, and never
+            // let a capture failure mask the test's real error.
+            try {
+                $browser->dismissPendingDialogs();
+
+                $browser->screenshot('failure-'.$this->getCallerName().'-'.$key);
+            } catch (Throwable) {
+                // Best-effort artifact capture.
+            }
         });
     }
 

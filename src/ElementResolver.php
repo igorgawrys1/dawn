@@ -82,6 +82,13 @@ class ElementResolver
     }
 
     /**
+     * The CSS selector of the iframe this resolver is scoped inside, if any.
+     * When set, locators resolve within that frame via Playwright's
+     * frameLocator rather than against the top document.
+     */
+    public ?string $frameSelector = null;
+
+    /**
      * A locator for the first element matching the given Dusk selector.
      */
     public function resolve(string $selector): LocatorInterface
@@ -94,7 +101,7 @@ class ElementResolver
      */
     public function all(string $selector): LocatorInterface
     {
-        return $this->page->locator($this->format($selector));
+        return $this->rootLocator($this->format($selector));
     }
 
     /**
@@ -102,7 +109,26 @@ class ElementResolver
      */
     public function scope(): LocatorInterface
     {
-        return $this->page->locator($this->prefix)->first();
+        return $this->rootLocator($this->prefix)->first();
+    }
+
+    /**
+     * A first-match locator for an already-formatted CSS selector, honouring
+     * the current frame scope. Used by the read helpers when in a frame.
+     */
+    public function locatorForFormatted(string $formattedSelector): LocatorInterface
+    {
+        return $this->rootLocator($formattedSelector)->first();
+    }
+
+    /**
+     * Build a locator against the top document, or within the scoped frame.
+     */
+    protected function rootLocator(string $selector): LocatorInterface
+    {
+        return $this->frameSelector !== null
+            ? $this->page->frameLocator($this->frameSelector)->locator($selector)
+            : $this->page->locator($selector);
     }
 
     /**
@@ -242,7 +268,7 @@ class ElementResolver
      */
     protected function firstMatch(array $candidates): LocatorInterface
     {
-        return $this->page->locator(implode(', ', array_unique($candidates)))->first();
+        return $this->rootLocator(implode(', ', array_unique($candidates)))->first();
     }
 
     /**

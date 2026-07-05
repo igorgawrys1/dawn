@@ -41,34 +41,70 @@ trait MakesAssertions
         return $this;
     }
 
+    /**
+     * Assert that the given cookie is present.
+     */
     public function assertHasCookie(string $name, bool $decrypt = true): static
     {
-        throw UnsupportedDuskMethod::make('assertHasCookie');
+        $cookie = $decrypt ? $this->cookie($name) : $this->plainCookie($name);
+
+        PHPUnit::assertNotNull($cookie, "Did not find expected cookie [{$name}].");
+
+        return $this;
     }
 
+    /**
+     * Assert that the given unencrypted cookie is present.
+     */
     public function assertHasPlainCookie(string $name): static
     {
-        throw UnsupportedDuskMethod::make('assertHasPlainCookie');
+        return $this->assertHasCookie($name, false);
     }
 
+    /**
+     * Assert that the given cookie is not present.
+     */
     public function assertCookieMissing(string $name, bool $decrypt = true): static
     {
-        throw UnsupportedDuskMethod::make('assertCookieMissing');
+        $cookie = $decrypt ? $this->cookie($name) : $this->plainCookie($name);
+
+        PHPUnit::assertNull($cookie, "Found unexpected cookie [{$name}].");
+
+        return $this;
     }
 
+    /**
+     * Assert that the given unencrypted cookie is not present.
+     */
     public function assertPlainCookieMissing(string $name): static
     {
-        throw UnsupportedDuskMethod::make('assertPlainCookieMissing');
+        return $this->assertCookieMissing($name, false);
     }
 
+    /**
+     * Assert that the given cookie has the given value.
+     */
     public function assertCookieValue(string $name, string $value, bool $decrypt = true): static
     {
-        throw UnsupportedDuskMethod::make('assertCookieValue');
+        $actual = $decrypt ? $this->cookie($name) : $this->plainCookie($name);
+
+        $display = is_scalar($actual) ? (string) $actual : '';
+
+        PHPUnit::assertEquals(
+            $value,
+            $actual,
+            "Cookie [{$name}] had value [{$display}], but expected [{$value}]."
+        );
+
+        return $this;
     }
 
+    /**
+     * Assert that the given unencrypted cookie has the given value.
+     */
     public function assertPlainCookieValue(string $name, string $value): static
     {
-        throw UnsupportedDuskMethod::make('assertPlainCookieValue');
+        return $this->assertCookieValue($name, $value, false);
     }
 
     /**
@@ -284,6 +320,10 @@ trait MakesAssertions
      */
     public function inputValue(string $field): string
     {
+        if ($this->resolver->frameSelector !== null) {
+            return $this->resolver->resolveForTyping($field)->inputValue();
+        }
+
         $target = json_encode($this->resolver->cssForTyping($field));
 
         $value = $this->page->evaluate(
@@ -522,11 +562,15 @@ trait MakesAssertions
      */
     public function ensureElementSupportsValueAttribute(string $selector, string $fullSelector): void
     {
-        $target = json_encode($fullSelector);
+        if ($this->resolver->frameSelector !== null) {
+            $tagName = $this->resolver->resolve($selector)->evaluate('el => el.tagName.toLowerCase()');
+        } else {
+            $target = json_encode($fullSelector);
 
-        $tagName = $this->page->evaluate(
-            "() => document.querySelector({$target})?.tagName.toLowerCase() ?? null"
-        );
+            $tagName = $this->page->evaluate(
+                "() => document.querySelector({$target})?.tagName.toLowerCase() ?? null"
+            );
+        }
 
         PHPUnit::assertTrue(in_array($tagName, [
             'textarea',
@@ -700,7 +744,10 @@ trait MakesAssertions
 
     public function assertDialogOpened(string $message): static
     {
-        throw UnsupportedDuskMethod::make('assertDialogOpened');
+        throw UnsupportedDuskMethod::make(
+            'assertDialogOpened',
+            'the playwright-php engine cannot drive blocking JS dialogs from PHP (synchronous transport deadlock)'
+        );
     }
 
     /**
@@ -781,34 +828,93 @@ trait MakesAssertions
         return $this;
     }
 
+    /**
+     * Assert that a given Vue component data property matches the given value.
+     */
     public function assertVue(string $key, mixed $value, ?string $componentSelector = null): static
     {
-        throw UnsupportedDuskMethod::make('assertVue');
+        $formattedValue = json_encode($value);
+
+        PHPUnit::assertEquals(
+            $value,
+            $this->vueAttribute($componentSelector ?? '', $key),
+            "Did not see expected value [{$formattedValue}] at the key [{$key}]."
+        );
+
+        return $this;
     }
 
+    /**
+     * Assert that a given Vue component data property does not match the value.
+     */
     public function assertVueIsNot(string $key, mixed $value, ?string $componentSelector = null): static
     {
-        throw UnsupportedDuskMethod::make('assertVueIsNot');
+        $formattedValue = json_encode($value);
+
+        PHPUnit::assertNotEquals(
+            $value,
+            $this->vueAttribute($componentSelector ?? '', $key),
+            "Saw unexpected value [{$formattedValue}] at the key [{$key}]."
+        );
+
+        return $this;
     }
 
+    /**
+     * Assert that a given Vue component data property (an array) contains the value.
+     */
     public function assertVueContains(string $key, mixed $value, ?string $componentSelector = null): static
     {
-        throw UnsupportedDuskMethod::make('assertVueContains');
+        $attribute = $this->vueAttribute($componentSelector ?? '', $key);
+
+        PHPUnit::assertIsArray($attribute, "The attribute for key [{$key}] is not an array.");
+
+        PHPUnit::assertContains($value, $attribute);
+
+        return $this;
     }
 
-    public function assertVueDoesntContain(string $key, mixed $value, ?string $componentSelector = null): static
-    {
-        throw UnsupportedDuskMethod::make('assertVueDoesntContain');
-    }
-
+    /**
+     * Assert that a given Vue component data property (an array) does not contain the value.
+     */
     public function assertVueDoesNotContain(string $key, mixed $value, ?string $componentSelector = null): static
     {
-        throw UnsupportedDuskMethod::make('assertVueDoesNotContain');
+        $attribute = $this->vueAttribute($componentSelector ?? '', $key);
+
+        PHPUnit::assertIsArray($attribute, "The attribute for key [{$key}] is not an array.");
+
+        PHPUnit::assertNotContains($value, $attribute);
+
+        return $this;
     }
 
+    /**
+     * Alias of assertVueDoesNotContain (Dusk spelling).
+     */
+    public function assertVueDoesntContain(string $key, mixed $value, ?string $componentSelector = null): static
+    {
+        return $this->assertVueDoesNotContain($key, $value, $componentSelector);
+    }
+
+    /**
+     * Read a Vue component data property (Vue 2 __vue__ and Vue 3 internals).
+     */
     public function vueAttribute(string $componentSelector, string $key): mixed
     {
-        throw UnsupportedDuskMethod::make('vueAttribute');
+        $selector = json_encode($this->resolver->format($componentSelector));
+
+        return $this->page->evaluate(
+            "() => {\n".
+            "    const el = document.querySelector({$selector});\n".
+            "    if (el === null) { return null; }\n".
+            "    if (typeof el.__vue__ !== 'undefined') { return el.__vue__.{$key}; }\n".
+            "    try {\n".
+            "        const attr = el.__vueParentComponent.ctx.{$key};\n".
+            "        if (typeof attr !== 'undefined') { return attr; }\n".
+            "    } catch (e) {}\n".
+            "    return el.__vueParentComponent.setupState.{$key};\n".
+            '}'
+        );
     }
 
     /**
@@ -825,6 +931,10 @@ trait MakesAssertions
      */
     protected function elementValue(string $formattedSelector): string
     {
+        if ($this->resolver->frameSelector !== null) {
+            return $this->resolver->locatorForFormatted($formattedSelector)->inputValue();
+        }
+
         $target = json_encode($formattedSelector);
 
         $value = $this->page->evaluate(

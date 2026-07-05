@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Interactions Fixture</title>
+    <style>
+        #pad { width: 300px; height: 200px; background: #eee; position: relative; }
+        #box { width: 40px; height: 40px; background: #39f; position: absolute; left: 10px; top: 10px; }
+        #hover-target:hover ~ #hover-reveal { display: block; }
+        #hover-reveal { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Interactions</h1>
+
+    <button id="target" type="button">Target</button>
+    <div id="log" dusk="log"></div>
+
+    <div id="hover-target">Hover me</div>
+    <div id="hover-reveal" dusk="reveal">Revealed on hover</div>
+
+    <div id="pad">
+        <div id="box" dusk="box"></div>
+    </div>
+    <div dusk="box-pos"></div>
+
+    <script>
+        const log = document.getElementById('log');
+        const record = (name) => log.textContent = (log.textContent ? log.textContent + ',' : '') + name;
+
+        const t = document.getElementById('target');
+        t.addEventListener('click', () => record('click'));
+        t.addEventListener('dblclick', () => record('dblclick'));
+        t.addEventListener('contextmenu', (e) => { e.preventDefault(); record('contextmenu'); });
+        t.addEventListener('mousedown', () => record('down'));
+        t.addEventListener('mouseup', () => record('up'));
+
+        // Mouse-driven drag of #box within #pad.
+        const box = document.getElementById('box');
+        const pos = document.querySelector('[dusk=box-pos]');
+        let dragging = false, startX = 0, startY = 0, originLeft = 0, originTop = 0;
+        box.addEventListener('mousedown', (e) => {
+            dragging = true; startX = e.clientX; startY = e.clientY;
+            originLeft = box.offsetLeft; originTop = box.offsetTop;
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            box.style.left = (originLeft + (e.clientX - startX)) + 'px';
+            box.style.top = (originTop + (e.clientY - startY)) + 'px';
+        });
+        window.addEventListener('mouseup', () => {
+            if (!dragging) return;
+            dragging = false;
+            pos.textContent = box.offsetLeft + ',' + box.offsetTop;
+        });
+    </script>
+</body>
+</html>
