@@ -15,17 +15,10 @@ APP_PORT="${APP_PORT:-8787}"
 # Older Laravel 10.x / 11.x releases now carry security advisories, and recent
 # Composer refuses to load advisory-affected versions during resolution. This
 # throwaway integration app only needs to boot and serve HTTP, so turn off
-# advisory blocking by writing it straight into the global config file (the
-# `config` CLI command does not accept this key). Unknown to older Composer,
-# it is simply ignored.
-COMPOSER_HOME="$(composer -q config --global home 2>/dev/null || echo "${HOME}/.composer")"
-mkdir -p "$COMPOSER_HOME"
-COMPOSER_HOME="$COMPOSER_HOME" php -r '
-    $file = getenv("COMPOSER_HOME")."/config.json";
-    $config = is_file($file) ? (json_decode((string) file_get_contents($file), true) ?: []) : [];
-    $config["policy"]["advisories"]["block"] = false;
-    file_put_contents($file, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-'
+# advisory blocking. Use the config CLI (writes a schema-valid entry on the
+# Composer versions that enforce the policy); guarded with `|| true` because
+# older Composer does not know the key - and does not block, so it is moot.
+composer config --global --no-plugins policy.advisories.block false >/dev/null 2>&1 || true
 
 echo "==> Creating laravel/laravel ($LARAVEL_CONSTRAINT) in $WORKDIR"
 composer create-project laravel/laravel "$WORKDIR" "$LARAVEL_CONSTRAINT" --no-interaction --prefer-dist --no-audit
