@@ -43,6 +43,20 @@ final class FormInteractionTest extends BrowserTestCase
         });
     }
 
+    public function test_value_getter_and_setter(): void
+    {
+        $this->browse(function (Browser $browser): void {
+            $browser->visit('/form.html');
+
+            $this->assertSame('prefilled@example.com', $browser->value('input[name=email]'));
+
+            $browser->value('input[name=email]', 'set@example.com')
+                ->assertInputValue('email', 'set@example.com');
+
+            $this->assertSame('set@example.com', $browser->value('input[name=email]'));
+        });
+    }
+
     public function test_selects(): void
     {
         $this->browse(function (Browser $browser): void {
