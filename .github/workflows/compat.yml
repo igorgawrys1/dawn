@@ -1,0 +1,49 @@
+name: Dusk compatibility
+
+# Measures Dawn's compatibility against the CURRENT upstream laravel/dusk and
+# refreshes the badge JSON. Runs weekly (to catch new Dusk releases) and on
+# pushes that touch the API or the report script.
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/compat-report.php'
+      - '.github/workflows/compat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies (Dawn + current laravel/dusk)
+        run: |
+          composer install --no-interaction --no-progress
+          composer require --dev laravel/dusk --no-interaction --no-progress --no-scripts
+
+      - name: Measure compatibility
+        run: php scripts/compat-report.php
+
+      - name: Commit badge if it changed
+        run: |
+          if git status --porcelain .github/badges/dusk-compat.json | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .github/badges/dusk-compat.json
+            git commit -m "chore: refresh Dusk compatibility badge [skip ci]"
+            git push
+          else
+            echo "Compatibility badge unchanged."
+          fi

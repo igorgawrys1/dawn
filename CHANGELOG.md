@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-05
+
+Pushes coverage of the Dusk `Browser` API to ~95% (auto-measured against the
+current upstream Dusk). Everything not covered is documented as genuinely
+un-mappable in COMPATIBILITY.md.
+
+### Added
+
+- **Mouse**: full `page.mouse()` mapping - cursor-position `click()`,
+  `clickAtPoint`, `moveMouse`, `clickAndHold`, `releaseMouse`, and
+  cursor/selector variants of `doubleClick` / `rightClick` / `controlClick`.
+- **Drag & drop**: `drag` (via `dragTo`) and `dragUp/Down/Left/Right/dragOffset`
+  (via mouse move sequences).
+- **Keyboard**: `withKeyboard()` fluent wrapper (`KeyboardActions`).
+- **Cookies**: `cookie` / `plainCookie` / `addCookie` / `deleteCookie` and all
+  six cookie assertions; encrypted cookies use Laravel's `Crypt` +
+  `CookieValuePrefix`, exactly like Dusk.
+- **Vue**: `assertVue`, `assertVueIsNot`, `assertVueContains`,
+  `assertVueDoesNotContain` (+ `assertVueDoesntContain` alias), `vueAttribute`,
+  `waitUntilVue`, `waitUntilVueIsNot` - reads Vue 2 and Vue 3 internals.
+- **Pages & Components**: `Dawn\Page` and `Dawn\Component`, plus `visit(Page)`,
+  `on`, `onWithoutAssert`, `component`, `onComponent`; `within`/`with` accept a
+  Component.
+- **Frames**: `withinFrame()` via a frame-aware `ElementResolver` (Playwright
+  `frameLocator`), with reads routed through locators inside the frame.
+- **Waiting**: `waitForEvent()`; `fitContent()` measures the document and
+  resizes the viewport.
+- **Compatibility badge**: `scripts/compat-report.php` + a weekly workflow that
+  measures Dawn against the current laravel/dusk and refreshes a shields
+  endpoint badge.
+- **Claude auto-review**: `.github/workflows/claude-review.yml` reviews PRs.
+
+### Changed
+
+- Failure capture dismisses any dialog a failing test left open before taking
+  the screenshot, and never lets a capture error mask the test's real failure.
+
+### Not supported (documented in COMPATIBILITY.md)
+
+- `maximize` / `move` (no OS window in Playwright), `tinker` / `stop`
+  (interactive-only), and JS dialogs `acceptDialog` / `dismissDialog` /
+  `typeInDialog` / `waitForDialog` / `assertDialogOpened` (the engine's
+  synchronous transport + always-on dialog listener deadlock on blocking
+  dialogs). All throw `UnsupportedDuskMethod`.
+
 ## [0.1.0] - 2026-07-05
 
 Initial release: run existing Laravel Dusk suites on Playwright by swapping
@@ -53,5 +98,6 @@ only the test base class.
   helpers/assertions, `assertVue*`, cursor-position mouse variants,
   `maximize()`/`move()` (Playwright has viewports, not OS windows).
 
-[Unreleased]: https://github.com/igorgawrys1/dawn/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/igorgawrys1/dawn/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/igorgawrys1/dawn/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/igorgawrys1/dawn/releases/tag/v0.1.0
