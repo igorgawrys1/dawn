@@ -1,0 +1,66 @@
+name: Release
+
+# Tag-driven releases: push a v* tag and this workflow
+#   1. publishes a GitHub Release with the matching CHANGELOG.md section, and
+#   2. notifies Packagist so the new version is picked up immediately.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract changelog section for this version
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { grab = 1; next }
+            grab && /^## \[/ { exit }
+            grab { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            echo "No CHANGELOG.md section found for ${VERSION} - add one before tagging." >&2
+            exit 1
+          fi
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          generate_release_notes: false
+
+  packagist:
+    name: Notify Packagist
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Trigger Packagist update
+        env:
+          PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        run: |
+          if [ -z "$PACKAGIST_USERNAME" ] || [ -z "$PACKAGIST_TOKEN" ]; then
+            echo "Packagist secrets not set - skipping (add PACKAGIST_USERNAME and PACKAGIST_TOKEN to enable)."
+            exit 0
+          fi
+
+          status=$(curl -sS -o /tmp/packagist.out -w '%{http_code}' \
+            -X POST "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            -d '{"repository":{"url":"https://github.com/igorgawrys1/dawn"}}')
+
+          cat /tmp/packagist.out; echo
+          if [ "$status" != "200" ] && [ "$status" != "202" ]; then
+            echo "Packagist update failed with HTTP $status" >&2
+            exit 1
+          fi
+          echo "Packagist notified (HTTP $status)."
