@@ -78,6 +78,16 @@ class Browser
      */
     public array $pendingDialogs = [];
 
+    /**
+     * The page object the browser is currently on, if any.
+     */
+    public ?Page $currentPage = null;
+
+    /**
+     * The component the browser is currently scoped to, if any.
+     */
+    public ?Component $currentComponent = null;
+
     public ElementResolver $resolver;
 
     public function __construct(
@@ -121,15 +131,26 @@ class Browser
     }
 
     /**
-     * Browse to the given URL.
+     * Browse to the given URL or Page object.
      */
-    public function visit(string $url): static
+    public function visit(string|Page $url): static
     {
+        $page = null;
+
+        if ($url instanceof Page) {
+            $page = $url;
+            $url = $page->url();
+        }
+
         if (! str_contains($url, '://')) {
             $url = static::$baseUrl.'/'.ltrim($url, '/');
         }
 
         $this->page->goto($url);
+
+        if ($page !== null) {
+            $this->on($page);
+        }
 
         return $this;
     }
@@ -284,25 +305,38 @@ class Browser
     }
 
     /**
-     * Execute the given callback within a browser scoped to the selector.
+     * Execute the given callback within a browser scoped to the selector or component.
      */
-    public function within(string $selector, Closure $callback): static
+    public function within(string|Component $selector, Closure $callback): static
     {
         return $this->with($selector, $callback);
     }
 
     /**
-     * Execute the given callback within a browser scoped to the selector.
+     * Execute the given callback within a browser scoped to the selector or component.
      */
-    public function with(string $selector, Closure $callback): static
+    public function with(string|Component $selector, Closure $callback): static
     {
+        // A Component's prefix is applied once by onComponent(); here it must
+        // NOT be prepended, so it scopes from the current prefix (mirrors
+        // Dusk, where Component::__toString() is empty for exactly this reason).
+        $scope = $selector instanceof Component ? '' : $selector;
+
         $browser = new static(
             $this->page,
-            new ElementResolver($this->page, $this->resolver->format($selector)),
+            new ElementResolver($this->page, $this->resolver->format($scope)),
         );
 
         $browser->consoleMessages = &$this->consoleMessages;
         $browser->pendingDialogs = &$this->pendingDialogs;
+
+        if ($this->currentPage !== null) {
+            $browser->onWithoutAssert($this->currentPage);
+        }
+
+        if ($selector instanceof Component) {
+            $browser->onComponent($selector, $this->resolver);
+        }
 
         $callback($browser);
 
@@ -452,19 +486,73 @@ class Browser
         throw UnsupportedDuskMethod::make('withinFrame');
     }
 
-    public function on(object $page): static
+    /**
+     * Set the current page and assert that the browser is on it.
+     */
+    public function on(Page $page): static
     {
-        throw UnsupportedDuskMethod::make('on', 'Dusk page objects are not supported yet');
+        $this->onWithoutAssert($page);
+
+        $page->assert($this);
+
+        return $this;
     }
 
-    public function onWithoutAssert(object $page): static
+    /**
+     * Set the current page without asserting, registering its element shortcuts.
+     */
+    public function onWithoutAssert(Page $page): static
     {
-        throw UnsupportedDuskMethod::make('onWithoutAssert', 'Dusk page objects are not supported yet');
+        $this->currentPage = $page;
+
+        $this->resolver->pageElements(array_merge(
+            $page::siteElements(),
+            $page->elements(),
+        ));
+
+        return $this;
     }
 
-    public function component(object $component): static
+    /**
+     * Create a browser scoped to the given component and assert its presence.
+     */
+    public function component(Component $component): static
     {
-        throw UnsupportedDuskMethod::make('component', 'Dusk components are not supported yet');
+        // Start from the current prefix; onComponent() appends the component
+        // selector exactly once.
+        $browser = new static(
+            $this->page,
+            new ElementResolver($this->page, $this->resolver->format('')),
+        );
+
+        $browser->consoleMessages = &$this->consoleMessages;
+        $browser->pendingDialogs = &$this->pendingDialogs;
+
+        if ($this->currentPage !== null) {
+            $browser->onWithoutAssert($this->currentPage);
+        }
+
+        $browser->onComponent($component, $this->resolver);
+
+        return $browser;
+    }
+
+    /**
+     * Bind the given component to this browser and register its shortcuts.
+     */
+    public function onComponent(Component $component, ElementResolver $parentResolver): static
+    {
+        $this->currentComponent = $component;
+
+        $this->resolver->pageElements(
+            $component->elements() + $parentResolver->elements
+        );
+
+        $component->assert($this);
+
+        $this->resolver->prefix = $this->resolver->format($component->selector());
+
+        return $this;
     }
 
     /**
