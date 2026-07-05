@@ -817,34 +817,93 @@ trait MakesAssertions
         return $this;
     }
 
+    /**
+     * Assert that a given Vue component data property matches the given value.
+     */
     public function assertVue(string $key, mixed $value, ?string $componentSelector = null): static
     {
-        throw UnsupportedDuskMethod::make('assertVue');
+        $formattedValue = json_encode($value);
+
+        PHPUnit::assertEquals(
+            $value,
+            $this->vueAttribute($componentSelector ?? '', $key),
+            "Did not see expected value [{$formattedValue}] at the key [{$key}]."
+        );
+
+        return $this;
     }
 
+    /**
+     * Assert that a given Vue component data property does not match the value.
+     */
     public function assertVueIsNot(string $key, mixed $value, ?string $componentSelector = null): static
     {
-        throw UnsupportedDuskMethod::make('assertVueIsNot');
+        $formattedValue = json_encode($value);
+
+        PHPUnit::assertNotEquals(
+            $value,
+            $this->vueAttribute($componentSelector ?? '', $key),
+            "Saw unexpected value [{$formattedValue}] at the key [{$key}]."
+        );
+
+        return $this;
     }
 
+    /**
+     * Assert that a given Vue component data property (an array) contains the value.
+     */
     public function assertVueContains(string $key, mixed $value, ?string $componentSelector = null): static
     {
-        throw UnsupportedDuskMethod::make('assertVueContains');
+        $attribute = $this->vueAttribute($componentSelector ?? '', $key);
+
+        PHPUnit::assertIsArray($attribute, "The attribute for key [{$key}] is not an array.");
+
+        PHPUnit::assertContains($value, $attribute);
+
+        return $this;
     }
 
-    public function assertVueDoesntContain(string $key, mixed $value, ?string $componentSelector = null): static
-    {
-        throw UnsupportedDuskMethod::make('assertVueDoesntContain');
-    }
-
+    /**
+     * Assert that a given Vue component data property (an array) does not contain the value.
+     */
     public function assertVueDoesNotContain(string $key, mixed $value, ?string $componentSelector = null): static
     {
-        throw UnsupportedDuskMethod::make('assertVueDoesNotContain');
+        $attribute = $this->vueAttribute($componentSelector ?? '', $key);
+
+        PHPUnit::assertIsArray($attribute, "The attribute for key [{$key}] is not an array.");
+
+        PHPUnit::assertNotContains($value, $attribute);
+
+        return $this;
     }
 
+    /**
+     * Alias of assertVueDoesNotContain (Dusk spelling).
+     */
+    public function assertVueDoesntContain(string $key, mixed $value, ?string $componentSelector = null): static
+    {
+        return $this->assertVueDoesNotContain($key, $value, $componentSelector);
+    }
+
+    /**
+     * Read a Vue component data property (Vue 2 __vue__ and Vue 3 internals).
+     */
     public function vueAttribute(string $componentSelector, string $key): mixed
     {
-        throw UnsupportedDuskMethod::make('vueAttribute');
+        $selector = json_encode($this->resolver->format($componentSelector));
+
+        return $this->page->evaluate(
+            "() => {\n".
+            "    const el = document.querySelector({$selector});\n".
+            "    if (el === null) { return null; }\n".
+            "    if (typeof el.__vue__ !== 'undefined') { return el.__vue__.{$key}; }\n".
+            "    try {\n".
+            "        const attr = el.__vueParentComponent.ctx.{$key};\n".
+            "        if (typeof attr !== 'undefined') { return attr; }\n".
+            "    } catch (e) {}\n".
+            "    return el.__vueParentComponent.setupState.{$key};\n".
+            '}'
+        );
     }
 
     /**

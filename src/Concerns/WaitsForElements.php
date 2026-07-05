@@ -265,14 +265,20 @@ trait WaitsForElements
         return $this;
     }
 
+    /**
+     * Wait until a Vue component data property matches the given value.
+     */
     public function waitUntilVue(string $key, mixed $value, ?string $componentSelector = null, ?int $seconds = null): static
     {
-        throw UnsupportedDuskMethod::make('waitUntilVue');
+        return $this->waitUsing($seconds, 100, fn (): bool => $value === $this->vueAttribute($componentSelector ?? '', $key));
     }
 
+    /**
+     * Wait until a Vue component data property no longer matches the value.
+     */
     public function waitUntilVueIsNot(string $key, mixed $value, ?string $componentSelector = null, ?int $seconds = null): static
     {
-        throw UnsupportedDuskMethod::make('waitUntilVueIsNot');
+        return $this->waitUsing($seconds, 100, fn (): bool => $value !== $this->vueAttribute($componentSelector ?? '', $key));
     }
 
     public function waitForDialog(?int $seconds = null): static
