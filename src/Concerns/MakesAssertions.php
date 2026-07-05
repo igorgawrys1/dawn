@@ -41,34 +41,70 @@ trait MakesAssertions
         return $this;
     }
 
+    /**
+     * Assert that the given cookie is present.
+     */
     public function assertHasCookie(string $name, bool $decrypt = true): static
     {
-        throw UnsupportedDuskMethod::make('assertHasCookie');
+        $cookie = $decrypt ? $this->cookie($name) : $this->plainCookie($name);
+
+        PHPUnit::assertNotNull($cookie, "Did not find expected cookie [{$name}].");
+
+        return $this;
     }
 
+    /**
+     * Assert that the given unencrypted cookie is present.
+     */
     public function assertHasPlainCookie(string $name): static
     {
-        throw UnsupportedDuskMethod::make('assertHasPlainCookie');
+        return $this->assertHasCookie($name, false);
     }
 
+    /**
+     * Assert that the given cookie is not present.
+     */
     public function assertCookieMissing(string $name, bool $decrypt = true): static
     {
-        throw UnsupportedDuskMethod::make('assertCookieMissing');
+        $cookie = $decrypt ? $this->cookie($name) : $this->plainCookie($name);
+
+        PHPUnit::assertNull($cookie, "Found unexpected cookie [{$name}].");
+
+        return $this;
     }
 
+    /**
+     * Assert that the given unencrypted cookie is not present.
+     */
     public function assertPlainCookieMissing(string $name): static
     {
-        throw UnsupportedDuskMethod::make('assertPlainCookieMissing');
+        return $this->assertCookieMissing($name, false);
     }
 
+    /**
+     * Assert that the given cookie has the given value.
+     */
     public function assertCookieValue(string $name, string $value, bool $decrypt = true): static
     {
-        throw UnsupportedDuskMethod::make('assertCookieValue');
+        $actual = $decrypt ? $this->cookie($name) : $this->plainCookie($name);
+
+        $display = is_scalar($actual) ? (string) $actual : '';
+
+        PHPUnit::assertEquals(
+            $value,
+            $actual,
+            "Cookie [{$name}] had value [{$display}], but expected [{$value}]."
+        );
+
+        return $this;
     }
 
+    /**
+     * Assert that the given unencrypted cookie has the given value.
+     */
     public function assertPlainCookieValue(string $name, string $value): static
     {
-        throw UnsupportedDuskMethod::make('assertPlainCookieValue');
+        return $this->assertCookieValue($name, $value, false);
     }
 
     /**
