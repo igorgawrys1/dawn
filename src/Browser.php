@@ -161,24 +161,6 @@ class Browser
     }
 
     /**
-     * Scroll the element matching the given selector into view.
-     */
-    public function scrollIntoView(string $selector): static
-    {
-        $this->resolver->resolve($selector)->evaluate('el => el.scrollIntoView()');
-
-        return $this;
-    }
-
-    /**
-     * Scroll the page to the element matching the given selector.
-     */
-    public function scrollTo(string $selector): static
-    {
-        return $this->scrollIntoView($selector);
-    }
-
-    /**
      * Take a screenshot and store it with the given name.
      */
     public function screenshot(string $name): static
@@ -397,9 +379,21 @@ class Browser
         throw UnsupportedDuskMethod::make('maximize', 'Playwright uses viewports, not OS windows - use resize() instead');
     }
 
+    /**
+     * Resize the viewport to fit the document's rendered content.
+     */
     public function fitContent(): static
     {
-        throw UnsupportedDuskMethod::make('fitContent');
+        $size = $this->page->evaluate(
+            '() => { const el = document.documentElement; return [el.scrollWidth, el.scrollHeight]; }'
+        );
+
+        if (is_array($size) && isset($size[0], $size[1]) && is_numeric($size[0]) && is_numeric($size[1])
+            && (int) $size[0] > 0 && (int) $size[1] > 0) {
+            $this->resize((int) $size[0], (int) $size[1]);
+        }
+
+        return $this;
     }
 
     public function disableFitOnFailure(): static
@@ -437,9 +431,16 @@ class Browser
         throw UnsupportedDuskMethod::make('component', 'Dusk components are not supported yet');
     }
 
+    /**
+     * Execute the given callback with a fluent keyboard instance.
+     *
+     * @param  callable(KeyboardActions): void  $callback
+     */
     public function withKeyboard(callable $callback): static
     {
-        throw UnsupportedDuskMethod::make('withKeyboard');
+        $callback(new KeyboardActions($this->page));
+
+        return $this;
     }
 
     public function tinker(): static

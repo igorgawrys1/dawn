@@ -279,34 +279,65 @@ trait InteractsWithElements
         return $this;
     }
 
+    /**
+     * Drag the element at the "from" selector onto the "to" selector.
+     */
     public function drag(string $from, string $to): static
     {
-        throw UnsupportedDuskMethod::make('drag');
+        $this->resolver->resolve($from)->dragTo($this->resolver->resolve($to), $this->actionOptions());
+
+        return $this;
     }
 
+    /**
+     * Drag the element up by the given number of pixels.
+     */
     public function dragUp(string $selector, int $offset): static
     {
-        throw UnsupportedDuskMethod::make('dragUp');
+        return $this->dragOffset($selector, 0, -$offset);
     }
 
+    /**
+     * Drag the element down by the given number of pixels.
+     */
     public function dragDown(string $selector, int $offset): static
     {
-        throw UnsupportedDuskMethod::make('dragDown');
+        return $this->dragOffset($selector, 0, $offset);
     }
 
+    /**
+     * Drag the element left by the given number of pixels.
+     */
     public function dragLeft(string $selector, int $offset): static
     {
-        throw UnsupportedDuskMethod::make('dragLeft');
+        return $this->dragOffset($selector, -$offset, 0);
     }
 
+    /**
+     * Drag the element right by the given number of pixels.
+     */
     public function dragRight(string $selector, int $offset): static
     {
-        throw UnsupportedDuskMethod::make('dragRight');
+        return $this->dragOffset($selector, $offset, 0);
     }
 
+    /**
+     * Drag the element matching the given selector by the given offset.
+     */
     public function dragOffset(string $selector, int $x = 0, int $y = 0): static
     {
-        throw UnsupportedDuskMethod::make('dragOffset');
+        [$cx, $cy] = $this->elementCenter($selector);
+
+        $mouse = $this->page->mouse();
+        $mouse->move($cx, $cy);
+        $mouse->down();
+        $mouse->move($cx + $x, $cy + $y);
+        $mouse->up();
+
+        $this->mouseX = $cx + $x;
+        $this->mouseY = $cy + $y;
+
+        return $this;
     }
 
     public function acceptDialog(): static
