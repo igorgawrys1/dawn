@@ -30,7 +30,7 @@ trait InteractsWithAuthentication
     {
         $userId = $userId instanceof Authenticatable ? $userId->getAuthIdentifier() : $userId;
 
-        return $this->visit(rtrim(route('dawn.login', ['userId' => $userId, 'guard' => $guard], $this->shouldUseAbsoluteRouteForAuthentication())));
+        return $this->visit(rtrim(route('dawn.login', ['userId' => $userId, 'guard' => $guard], $this->shouldUseAbsoluteRouteForAuthentication()), '/'));
     }
 
     /**

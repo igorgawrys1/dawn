@@ -197,8 +197,10 @@ class Browser
      */
     public function responsiveScreenshots(string $name): static
     {
-        if (str_contains($name, '/')) {
-            $name = rtrim($name, '/').'/';
+        // Match Dusk: a trailing "/" keeps the breakpoint as the file name in a
+        // sub-directory; otherwise the breakpoint is appended with a hyphen.
+        if (! str_ends_with($name, '/')) {
+            $name .= '-';
         }
 
         $breakpoints = [
@@ -211,7 +213,7 @@ class Browser
         ];
 
         foreach ($breakpoints as $label => [$width, $height]) {
-            $this->resize($width, $height)->screenshot("{$name}-{$label}");
+            $this->resize($width, $height)->screenshot($name.$label);
         }
 
         return $this;

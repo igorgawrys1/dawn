@@ -66,10 +66,11 @@ trait InteractsWithElements
             return $this->elementValue($this->resolver->format($selector));
         }
 
-        $formatted = $this->resolver->format($selector);
+        $target = json_encode($this->resolver->format($selector));
+        $newValue = json_encode((string) $value);
 
         $this->page->evaluate(
-            'document.querySelector('.json_encode($formatted).').value = '.json_encode($value).';'
+            "() => { const el = document.querySelector({$target}); if (el !== null) { el.value = {$newValue}; } }"
         );
 
         return $this;

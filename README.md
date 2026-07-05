@@ -2,7 +2,7 @@
 
 # 🌅 Dawn
 
-### Run your existing Laravel Dusk suite on Playwright — without rewriting a single test.
+### Run your existing Laravel Dusk suite on Playwright - without rewriting a single test.
 
 [![Latest Version](https://img.shields.io/packagist/v/gawrys/dawn.svg?label=packagist&style=flat-square)](https://packagist.org/packages/gawrys/dawn)
 [![Total Downloads](https://img.shields.io/packagist/dt/gawrys/dawn.svg?style=flat-square)](https://packagist.org/packages/gawrys/dawn)
@@ -25,8 +25,8 @@
 > [!NOTE]
 > **Dawn does not swap Dusk's WebDriver driver; it reimplements Dusk's public Browser API on Playwright.**
 
-Your test bodies stay exactly as they are — `visit`, `type`, `press`, `waitFor`,
-`assertSee`, `within`, `loginAs`, `@dusk` selectors, all of it — while the browser
+Your test bodies stay exactly as they are - `visit`, `type`, `press`, `waitFor`,
+`assertSee`, `within`, `loginAs`, `@dusk` selectors, all of it - while the browser
 underneath is driven by Playwright: native auto-waiting, no ChromeDriver binary to
 manage, no Selenium.
 
@@ -63,10 +63,10 @@ that race the browser. Dawn keeps Dusk's ergonomics and deletes that layer.
 |---|---|---|
 | **Waiting** | PHP-side polling loops | Playwright's native auto-wait |
 | **Flakiness** | Actions fire before the DOM is ready | Every action waits for actionability first |
-| **Browser setup** | ChromeDriver binary + version drift | `playwright install` — always matched |
+| **Browser setup** | ChromeDriver binary + version drift | `playwright install` - always matched |
 | **Browsers** | Chrome | Chromium, Firefox, WebKit (`DAWN_BROWSER`) |
 | **Speed** | Selenium wire protocol | Playwright's direct CDP transport |
-| **Your tests** | — | **Identical.** Only the base class changes. |
+| **Your tests** | - | **Identical.** Only the base class changes. |
 
 The best part: **there's nothing to learn.** You keep your test suite, your
 `@dusk` selectors, your `loginAs()`, your CI artifact paths. You delete the
@@ -83,7 +83,7 @@ vendor/bin/playwright-install --browsers
 ```
 
 ```diff
-  // 2. tests/DuskTestCase.php — swap the base class, drop the WebDriver plumbing
+  // 2. tests/DuskTestCase.php - swap the base class, drop the WebDriver plumbing
 - use Laravel\Dusk\TestCase as BaseTestCase;
 + use Dawn\TestCase as BaseTestCase;
 ```
@@ -94,7 +94,7 @@ php artisan test --testsuite=Browser
 ```
 
 Test classes that `use Laravel\Dusk\Browser;` for closure type-hints keep working
-as-is — when laravel/dusk is absent, Dawn aliases that class name automatically.
+as-is - when laravel/dusk is absent, Dawn aliases that class name automatically.
 Full walkthrough in the **[migration guide](https://igorgawrys1.github.io/dawn-docs/guide/migration)**.
 
 ## Installation
@@ -108,7 +108,7 @@ vendor/bin/playwright-install --browsers
 
 `Dawn\DawnServiceProvider` is auto-discovered and registers the environment-gated
 `/_dawn/login`, `/_dawn/logout` and `/_dawn/user` routes that power `loginAs()` /
-`logout()` / `assertAuthenticated()` — the same out-of-process mechanism Dusk uses,
+`logout()` / `assertAuthenticated()` - the same out-of-process mechanism Dusk uses,
 never registered in production.
 
 ## Configuration
@@ -120,20 +120,20 @@ never registered in production.
 
 Base URL comes from `config('app.url')` / `APP_URL`, exactly like Dusk. Failure
 screenshots and console logs land in `tests/Browser/screenshots` and
-`tests/Browser/console` — the same paths as Dusk, so existing CI artifact globs
+`tests/Browser/console` - the same paths as Dusk, so existing CI artifact globs
 keep working.
 
 ## Databases
 
 `DatabaseMigrations` and `DatabaseTruncation` work unchanged. `RefreshDatabase`
-cannot work — the browser talks to your app over HTTP in another process — so Dawn
+cannot work - the browser talks to your app over HTTP in another process - so Dawn
 fails fast with a clear message instead of letting your suite fail mysteriously.
 
 ## Compatibility
 
 The full method-by-method table lives in **[COMPATIBILITY.md](COMPATIBILITY.md)**.
 Anything not yet implemented throws a typed `Dawn\Exceptions\UnsupportedDuskMethod`
-naming the method and linking to the table — Dawn never approximates silently.
+naming the method and linking to the table - Dawn never approximates silently.
 
 Dawn's own suite includes an acceptance class whose test bodies are byte-identical
 Dusk tests (including bodies ported from laravel/dusk's own repository), plus
@@ -147,7 +147,7 @@ multi-browser matrix configuration, visual regression, device emulation, a Pest 
 
 ## Contributing
 
-Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The golden rules:
+Issues and PRs welcome - see [CONTRIBUTING.md](CONTRIBUTING.md). The golden rules:
 no WebDriver, no PHP-side waiting (CI-enforced), and Dusk's behaviour is the spec.
 
 ## License

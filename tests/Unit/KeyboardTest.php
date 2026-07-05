@@ -26,7 +26,9 @@ final class KeyboardTest extends TestCase
     public function test_unknown_tokens_throw_with_the_supported_list(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown key token [{warp}]');
+        // Asserts both the human-facing prefix and that the supported-token
+        // list is included in the message.
+        $this->expectExceptionMessageMatches('/^Unknown key token \[\{warp\}\]\. Supported tokens: .+enter.+\.$/');
 
         Keyboard::translate('{warp}');
     }
