@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Form Fixture</title>
+</head>
+<body>
+    <h1>Registration</h1>
+
+    <form action="/second.html" method="get" dusk="registration-form">
+        <input type="text" name="name" id="name-field" placeholder="Name">
+        <input type="email" name="email" value="prefilled@example.com">
+        <textarea name="bio"></textarea>
+
+        <select name="role">
+            <option value="" disabled>Choose...</option>
+            <option value="admin">Administrator</option>
+            <option value="editor">Editor</option>
+            <option value="viewer" disabled>Viewer</option>
+        </select>
+
+        <select name="tags[]" multiple>
+            <option value="php">PHP</option>
+            <option value="js">JavaScript</option>
+            <option value="go">Go</option>
+        </select>
+
+        <input type="radio" name="plan" value="free"> Free
+        <input type="radio" name="plan" value="pro"> Pro
+
+        <input type="checkbox" name="terms" value="accepted"> Accept terms
+        <input type="checkbox" name="newsletter" checked> Newsletter
+
+        <input type="file" name="avatar">
+
+        <button type="button" name="save-draft">Save Draft</button>
+        <input type="submit" value="Register Now">
+        <button type="submit" dusk="submit-button">Create Account</button>
+
+        <button type="button" id="delayed-button" disabled>Process</button>
+    </form>
+
+    <div dusk="terms-panel">
+        <p>The terms panel text.</p>
+        <input type="checkbox" name="terms" value="scoped">
+    </div>
+
+    <script>
+        setTimeout(() => {
+            document.getElementById('delayed-button').removeAttribute('disabled');
+        }, 400);
+    </script>
+</body>
+</html>
