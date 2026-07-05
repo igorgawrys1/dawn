@@ -13,7 +13,7 @@ WORKDIR="${INTEGRATION_DIR:-$(mktemp -d)}/app"
 APP_PORT="${APP_PORT:-8787}"
 
 echo "==> Creating laravel/laravel ($LARAVEL_CONSTRAINT) in $WORKDIR"
-composer create-project laravel/laravel "$WORKDIR" "$LARAVEL_CONSTRAINT" --no-interaction --prefer-dist --quiet
+composer create-project laravel/laravel "$WORKDIR" "$LARAVEL_CONSTRAINT" --no-interaction --prefer-dist
 
 cd "$WORKDIR"
 
