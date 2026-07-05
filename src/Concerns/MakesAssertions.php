@@ -320,6 +320,10 @@ trait MakesAssertions
      */
     public function inputValue(string $field): string
     {
+        if ($this->resolver->frameSelector !== null) {
+            return $this->resolver->resolveForTyping($field)->inputValue();
+        }
+
         $target = json_encode($this->resolver->cssForTyping($field));
 
         $value = $this->page->evaluate(
@@ -558,11 +562,15 @@ trait MakesAssertions
      */
     public function ensureElementSupportsValueAttribute(string $selector, string $fullSelector): void
     {
-        $target = json_encode($fullSelector);
+        if ($this->resolver->frameSelector !== null) {
+            $tagName = $this->resolver->resolve($selector)->evaluate('el => el.tagName.toLowerCase()');
+        } else {
+            $target = json_encode($fullSelector);
 
-        $tagName = $this->page->evaluate(
-            "() => document.querySelector({$target})?.tagName.toLowerCase() ?? null"
-        );
+            $tagName = $this->page->evaluate(
+                "() => document.querySelector({$target})?.tagName.toLowerCase() ?? null"
+            );
+        }
 
         PHPUnit::assertTrue(in_array($tagName, [
             'textarea',
@@ -923,6 +931,10 @@ trait MakesAssertions
      */
     protected function elementValue(string $formattedSelector): string
     {
+        if ($this->resolver->frameSelector !== null) {
+            return $this->resolver->locatorForFormatted($formattedSelector)->inputValue();
+        }
+
         $target = json_encode($formattedSelector);
 
         $value = $this->page->evaluate(

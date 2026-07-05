@@ -481,9 +481,22 @@ class Browser
         throw UnsupportedDuskMethod::make('move', 'Playwright uses viewports, not OS windows');
     }
 
+    /**
+     * Execute the given callback within a browser scoped inside the iframe
+     * matching the given selector.
+     */
     public function withinFrame(string $selector, Closure $callback): static
     {
-        throw UnsupportedDuskMethod::make('withinFrame');
+        $frameResolver = new ElementResolver($this->page, 'body');
+        $frameResolver->frameSelector = $this->resolver->format($selector);
+
+        $browser = new static($this->page, $frameResolver);
+        $browser->consoleMessages = &$this->consoleMessages;
+        $browser->pendingDialogs = &$this->pendingDialogs;
+
+        $callback($browser);
+
+        return $this;
     }
 
     /**
@@ -600,6 +613,10 @@ class Browser
      */
     public function elementInnerText(string $formattedSelector): string
     {
+        if ($this->resolver->frameSelector !== null) {
+            return $this->resolver->locatorForFormatted($formattedSelector)->innerText();
+        }
+
         $target = json_encode($formattedSelector);
 
         $text = $this->page->evaluate(

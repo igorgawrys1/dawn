@@ -71,6 +71,12 @@ trait InteractsWithElements
             return $this->elementValue($this->resolver->format($selector));
         }
 
+        if ($this->resolver->frameSelector !== null) {
+            $this->resolver->resolve($selector)->evaluate('(el, v) => { el.value = v; }', (string) $value);
+
+            return $this;
+        }
+
         $target = json_encode($this->resolver->format($selector));
         $newValue = json_encode((string) $value);
 
