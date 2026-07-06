@@ -575,7 +575,7 @@ class Browser
      */
     public function withKeyboard(callable $callback): static
     {
-        $callback(new KeyboardActions($this->page));
+        $callback(new KeyboardActions($this));
 
         return $this;
     }
