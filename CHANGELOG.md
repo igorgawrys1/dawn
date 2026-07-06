@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- PHPUnit 13 support (`phpunit/phpunit: ^13.0`). Since Dawn requires PHPUnit at
+  runtime (its assertions call `PHPUnit\Framework\Assert`), the previous `^12`
+  cap would have blocked Laravel 13 apps that run on PHPUnit 13. Verified: the
+  full suite passes on PHPUnit 13.2 + Laravel 13 + testbench 11 (PHP 8.4).
+
 ### Fixed
 
 - Dusk class-name compatibility now also aliases `Laravel\Dusk\Page`,
