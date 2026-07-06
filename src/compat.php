@@ -21,16 +21,20 @@ declare(strict_types=1);
  *     Component, ...), because those trigger autoloading.
  */
 
-$eagerAliases = [
-    'Laravel\\Dusk\\Browser' => Dawn\Browser::class,
-    'Laravel\\Dusk\\Keyboard' => Dawn\KeyboardActions::class,
-];
+// Wrapped in an IIFE so this autoload.files bootstrap does not leak variables
+// into the global scope (matching the lazy branch's closure below).
+(static function (): void {
+    $eagerAliases = [
+        'Laravel\\Dusk\\Browser' => Dawn\Browser::class,
+        'Laravel\\Dusk\\Keyboard' => Dawn\KeyboardActions::class,
+    ];
 
-foreach ($eagerAliases as $duskClass => $dawnClass) {
-    if (! class_exists($duskClass)) {
-        class_alias($dawnClass, $duskClass);
+    foreach ($eagerAliases as $duskClass => $dawnClass) {
+        if (! class_exists($duskClass)) {
+            class_alias($dawnClass, $duskClass);
+        }
     }
-}
+})();
 
 spl_autoload_register(static function (string $class): void {
     $aliases = [
