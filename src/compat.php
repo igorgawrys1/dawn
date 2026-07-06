@@ -5,17 +5,31 @@ declare(strict_types=1);
 /*
  * Dusk class-name compatibility.
  *
- * Existing Dusk test files reference Laravel\Dusk\Browser in closure type
- * hints. PHP does NOT autoload classes when checking typed parameters, so the
- * Browser alias must exist eagerly - a lazy autoloader would never fire for
- * `function (Browser $browser)`. Base classes (TestCase, ...) are aliased
- * lazily instead, because `extends` does trigger autoloading.
+ * Existing Dusk test files reference Laravel\Dusk\* class names directly. When
+ * laravel/dusk is NOT installed, these aliases point those names at their Dawn
+ * equivalents so test bodies stay byte-identical. If laravel/dusk IS installed,
+ * the real classes win and none of these aliases are created.
  *
- * If laravel/dusk is installed, the real classes always win and none of these
- * aliases are created.
+ * Two strategies:
+ *
+ *   - EAGER for names used as closure parameter type-hints (Browser in
+ *     `browse(function (Browser $b) {...})`, Keyboard in
+ *     `withKeyboard(function (Keyboard $k) {...})`). PHP does not run
+ *     autoloaders when resolving a closure's parameter types, so a lazy alias
+ *     would never fire - the alias must already exist.
+ *   - LAZY for names referenced via `extends` / `new` (TestCase, Page,
+ *     Component, ...), because those trigger autoloading.
  */
-if (! class_exists(Laravel\Dusk\Browser::class)) {
-    class_alias(Dawn\Browser::class, Laravel\Dusk\Browser::class);
+
+$eagerAliases = [
+    'Laravel\\Dusk\\Browser' => Dawn\Browser::class,
+    'Laravel\\Dusk\\Keyboard' => Dawn\KeyboardActions::class,
+];
+
+foreach ($eagerAliases as $duskClass => $dawnClass) {
+    if (! class_exists($duskClass)) {
+        class_alias($dawnClass, $duskClass);
+    }
 }
 
 spl_autoload_register(static function (string $class): void {
@@ -23,6 +37,8 @@ spl_autoload_register(static function (string $class): void {
         'Laravel\\Dusk\\TestCase' => Dawn\TestCase::class,
         'Laravel\\Dusk\\ElementResolver' => Dawn\ElementResolver::class,
         'Laravel\\Dusk\\Dusk' => Dawn\Dawn::class,
+        'Laravel\\Dusk\\Page' => Dawn\Page::class,
+        'Laravel\\Dusk\\Component' => Dawn\Component::class,
     ];
 
     if (isset($aliases[$class])) {

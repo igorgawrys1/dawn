@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Dusk class-name compatibility now also aliases `Laravel\Dusk\Page`,
+  `Laravel\Dusk\Component` and `Laravel\Dusk\Keyboard` (the last eagerly, as it
+  appears as a `withKeyboard()` closure parameter type). Previously only
+  `Browser`/`TestCase`/`ElementResolver`/`Dusk` were aliased, so page-object
+  and component test bodies that extend the Dusk base classes would not resolve
+  when laravel/dusk is absent. `CompatAliasTest` now covers every alias.
+
 ## [0.3.0] - 2026-07-06
 
 ### Added
