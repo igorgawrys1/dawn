@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Laravel 13 support: `illuminate/support: ^13.0`, `orchestra/testbench: ^11.0`,
+  and a Laravel 13 (PHP 8.4) job in the integration matrix.
+
 ## [0.2.0] - 2026-07-05
 
 Pushes coverage of the Dusk `Browser` API to ~95% (auto-measured against the

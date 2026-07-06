@@ -8,7 +8,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/gawrys/dawn.svg?style=flat-square)](https://packagist.org/packages/gawrys/dawn)
 [![CI](https://img.shields.io/github/actions/workflow/status/igorgawrys1/dawn/ci.yml?branch=main&label=CI&style=flat-square)](https://github.com/igorgawrys1/dawn/actions/workflows/ci.yml)<br>
 [![PHP Version](https://img.shields.io/packagist/php-v/gawrys/dawn.svg?style=flat-square)](https://packagist.org/packages/gawrys/dawn)
-[![Laravel](https://img.shields.io/badge/Laravel-10%20|%2011%20|%2012-FF2D20?logo=laravel&style=flat-square)](https://laravel.com)
+[![Laravel](https://img.shields.io/badge/Laravel-10%20|%2011%20|%2012%20|%2013-FF2D20?logo=laravel&style=flat-square)](https://laravel.com)
 [![PHPStan](https://img.shields.io/badge/PHPStan-max-brightgreen?style=flat-square)](phpstan.neon.dist)
 [![Dusk compatibility](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/igorgawrys1/dawn/main/.github/badges/dusk-compat.json&style=flat-square)](COMPATIBILITY.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
@@ -105,7 +105,7 @@ composer require --dev gawrys/dawn
 vendor/bin/playwright-install --browsers
 ```
 
-**Requirements:** PHP 8.2+ · Laravel 10, 11 or 12 · Node.js 20+ (runs the Playwright engine).
+**Requirements:** PHP 8.2+ · Laravel 10, 11, 12 or 13 · Node.js 20+ (runs the Playwright engine).
 
 `Dawn\DawnServiceProvider` is auto-discovered and registers the environment-gated
 `/_dawn/login`, `/_dawn/logout` and `/_dawn/user` routes that power `loginAs()` /
@@ -142,9 +142,9 @@ URL-assertion and selector-formatting cases ported verbatim from Dusk's unit sui
 
 ## Roadmap
 
-As of v0.2.0 Dawn covers **~95%** of the Dusk `Browser` API (see the badge — it's
+As of v0.2.0 Dawn covers **~95%** of the Dusk `Browser` API (see the badge - it's
 measured automatically against the current upstream Dusk). The only unsupported
-methods are the ones that genuinely can't map onto the stack — OS-window
+methods are the ones that genuinely can't map onto the stack - OS-window
 `maximize()`/`move()`, interactive `tinker()`/`stop()`, and JavaScript dialogs
 (an engine deadlock, explained in [COMPATIBILITY.md](COMPATIBILITY.md)).
 
