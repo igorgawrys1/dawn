@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-06
+
 ### Added
 
 - Laravel 13 support: `illuminate/support: ^13.0`, `orchestra/testbench: ^11.0`,
-  and a Laravel 13 (PHP 8.4) job in the integration matrix.
+  and a Laravel 13 (PHP 8.4) job in the integration matrix. Verified against a
+  real laravel/laravel ^13.0 app (login/logout + encrypted-cookie round-trip)
+  and the PHPStan/larastan leg (which resolves to Laravel 13 + testbench 11).
 
 ## [0.2.0] - 2026-07-05
 
@@ -103,6 +107,7 @@ only the test base class.
   helpers/assertions, `assertVue*`, cursor-position mouse variants,
   `maximize()`/`move()` (Playwright has viewports, not OS windows).
 
-[Unreleased]: https://github.com/igorgawrys1/dawn/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/igorgawrys1/dawn/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/igorgawrys1/dawn/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/igorgawrys1/dawn/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/igorgawrys1/dawn/releases/tag/v0.1.0
