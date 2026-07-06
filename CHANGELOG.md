@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Browser`/`TestCase`/`ElementResolver`/`Dusk` were aliased, so page-object
   and component test bodies that extend the Dusk base classes would not resolve
   when laravel/dusk is absent. `CompatAliasTest` now covers every alias.
+- `ElementResolver` now treats backslashes as valid in a plausible CSS selector,
+  so escaped selectors (e.g. Tailwind's `.md\:flex` or `[name="a\:b"]`) are
+  kept as resolution candidates instead of being silently dropped.
 
 ## [0.3.0] - 2026-07-06
 

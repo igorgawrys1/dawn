@@ -114,6 +114,33 @@ final class ElementResolverTest extends TestCase
         $this->resolver()->resolveForRadioSelection('plan');
     }
 
+    /**
+     * CSS escapes use backslashes (Tailwind's `.md\:flex`, `[name="a\:b"]`), so
+     * such selectors must qualify as plausible; malformed ones must not.
+     *
+     * @return array<string, array{0: string, 1: bool}>
+     */
+    public static function plausibleSelectors(): array
+    {
+        return [
+            'plain label' => ['Save', true],
+            'id' => ['#email', true],
+            'attribute' => ['[dusk="login"]', true],
+            'tailwind escaped colon class' => ['.md\\:flex', true],
+            'attribute with escaped colon' => ['[name="a\\:b"]', true],
+            'form-array name' => ['tags[]', false],
+            'label with parenthesis' => ['Save (draft)', false],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('plausibleSelectors')]
+    public function test_plausible_css_selector_detection(string $value, bool $expected): void
+    {
+        $method = new \ReflectionMethod(ElementResolver::class, 'isPlausibleCssSelector');
+
+        $this->assertSame($expected, $method->invoke($this->resolver(), $value));
+    }
+
     private function resolver(): ElementResolver
     {
         return new ElementResolver($this->page());
