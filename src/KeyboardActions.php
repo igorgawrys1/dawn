@@ -7,12 +7,22 @@ namespace Dawn;
 use Playwright\Page\PageInterface;
 
 /**
- * Fluent keyboard wrapper handed to the callback of Browser::withKeyboard(),
- * mirroring Laravel\Dusk\Keyboard on top of Playwright's keyboard.
+ * Fluent keyboard wrapper, the Dawn equivalent of Laravel\Dusk\Keyboard.
+ *
+ * Normally received via the Browser::withKeyboard() callback, but - like Dusk's
+ * Keyboard, which is a plain public class - it can also be constructed directly.
+ * To stay compatible with both Dusk's `new Keyboard($browser)` and Dawn's own
+ * construction, the constructor accepts either a Dawn Browser or the underlying
+ * Playwright page (`Playwright\Page\PageInterface`).
  */
 final class KeyboardActions
 {
-    public function __construct(private readonly PageInterface $page) {}
+    private readonly PageInterface $page;
+
+    public function __construct(Browser|PageInterface $browserOrPage)
+    {
+        $this->page = $browserOrPage instanceof Browser ? $browserOrPage->page : $browserOrPage;
+    }
 
     /**
      * Press (and hold) the given key(s). Dusk key tokens are translated.

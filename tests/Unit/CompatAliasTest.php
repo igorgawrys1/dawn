@@ -70,4 +70,17 @@ final class CompatAliasTest extends TestCase
         $this->assertInstanceOf(\Dawn\Component::class, $component);
         $this->assertSame('@panel', $component->selector());
     }
+
+    /**
+     * Dusk's Keyboard is a plain public class that can be constructed directly
+     * with a Browser; Dawn supports that as well as page-based construction.
+     */
+    public function test_dusk_keyboard_can_be_constructed_directly(): void
+    {
+        $page = $this->createStub(\Playwright\Page\PageInterface::class);
+        $browser = new \Dawn\Browser($page);
+
+        $this->assertInstanceOf(\Dawn\KeyboardActions::class, new \Laravel\Dusk\Keyboard($browser));
+        $this->assertInstanceOf(\Dawn\KeyboardActions::class, new \Laravel\Dusk\Keyboard($page));
+    }
 }
