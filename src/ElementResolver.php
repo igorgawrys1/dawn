@@ -324,12 +324,22 @@ class ElementResolver
      * Plain button labels like "Save" parse as (non-matching) tag selectors
      * and are harmless; labels with quotes, parentheses, or malformed
      * attribute brackets would invalidate the whole selector list.
+     *
+     * Backslashes are allowed: CSS escapes them (e.g. Tailwind's `.md\:flex`
+     * or `[name="a\:b"]`), so a selector using an escape must still qualify.
+     * A dangling trailing backslash is rejected, though: candidates are joined
+     * with ", ", and per the CSS syntax spec an unterminated escape would
+     * consume that separator, silently collapsing the whole candidate list
+     * into one never-matching selector instead of failing cleanly.
      */
     protected function isPlausibleCssSelector(string $value): bool
     {
-        return preg_match('/^[\w\s\-.#\[\]=@:>*+~\'"^$]+$/', $value) === 1
+        $trailingBackslashes = strlen($value) - strlen(rtrim($value, '\\'));
+
+        return preg_match('/^[\w\s\-.#\[\]=@:>*+~\'"^$\\\\]+$/', $value) === 1
             && preg_match('/\[(?![a-zA-Z_-])/', $value) !== 1
             && substr_count($value, '"') % 2 === 0
-            && substr_count($value, "'") % 2 === 0;
+            && substr_count($value, "'") % 2 === 0
+            && $trailingBackslashes % 2 === 0;
     }
 }
