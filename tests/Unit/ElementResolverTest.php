@@ -128,8 +128,12 @@ final class ElementResolverTest extends TestCase
             'attribute' => ['[dusk="login"]', true],
             'tailwind escaped colon class' => ['.md\\:flex', true],
             'attribute with escaped colon' => ['[name="a\\:b"]', true],
+            'terminated trailing backslash escape' => ['foo\\\\', true],
             'form-array name' => ['tags[]', false],
             'label with parenthesis' => ['Save (draft)', false],
+            // A dangling trailing backslash would eat the ", " candidate
+            // separator, so it must be rejected.
+            'dangling trailing backslash' => ['Continue\\', false],
         ];
     }
 
