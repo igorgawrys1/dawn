@@ -26,8 +26,8 @@ declare(strict_types=1);
 (static function (): void {
     // Dawn\KeyboardActions is the equivalent of Laravel\Dusk\Keyboard, both as
     // the object handed to a withKeyboard() callback and via direct
-    // construction: its constructor accepts a Browser (like Dusk's Keyboard)
-    // or a Page, so `new Keyboard($browser)` works too.
+    // construction: its constructor accepts a Browser (like Dusk's Keyboard) or
+    // a Playwright page (PageInterface), so `new Keyboard($browser)` works too.
     $eagerAliases = [
         'Laravel\\Dusk\\Browser' => Dawn\Browser::class,
         'Laravel\\Dusk\\Keyboard' => Dawn\KeyboardActions::class,

@@ -12,15 +12,16 @@ use Playwright\Page\PageInterface;
  * Normally received via the Browser::withKeyboard() callback, but - like Dusk's
  * Keyboard, which is a plain public class - it can also be constructed directly.
  * To stay compatible with both Dusk's `new Keyboard($browser)` and Dawn's own
- * page-based construction, the constructor accepts either a Browser or a Page.
+ * construction, the constructor accepts either a Dawn Browser or the underlying
+ * Playwright page (`Playwright\Page\PageInterface`).
  */
 final class KeyboardActions
 {
     private readonly PageInterface $page;
 
-    public function __construct(Browser|PageInterface $browser)
+    public function __construct(Browser|PageInterface $browserOrPage)
     {
-        $this->page = $browser instanceof Browser ? $browser->page : $browser;
+        $this->page = $browserOrPage instanceof Browser ? $browserOrPage->page : $browserOrPage;
     }
 
     /**
